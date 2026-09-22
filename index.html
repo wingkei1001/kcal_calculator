@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>今日食左咩? - 中學生一日膳食與營養分析計算機</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            dark: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans TC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .touch-action-btn {
+            min-height: 42px;
+            touch-action: manipulation;
+        }
+        .meal-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .meal-card:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background-color: #fff; color: #000; font-size: 11px; }
+            .shadow-lg, .shadow-md, .shadow-sm { box-shadow: none !important; }
+            .print-break-inside-prevent { break-inside: avoid; }
+            .bg-gradient-to-r, .bg-gradient-to-br { background: #047857 !important; color: white !important; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between antialiased selection:bg-emerald-200">
+
+    <header class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white shadow-md sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2.5">
+                <div class="bg-white text-emerald-600 p-2 rounded-2xl shadow-inner text-xl font-black">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-2xl font-black tracking-wide leading-tight">今日食左咩?</h1>
+                    <p class="text-[10px] sm:text-xs text-emerald-100 font-light">香港中學生一日膳食與營養分析計算機</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="resetData()" class="touch-action-btn text-xs bg-emerald-700/70 hover:bg-emerald-800 px-3 py-1.5 rounded-xl border border-emerald-400/30 transition flex items-center gap-1.5 font-medium">
+                    <i class="fa-solid fa-rotate-right"></i> <span class="hidden sm:inline">重新開始</span>
+                </button>
+                <button onclick="window.print()" class="touch-action-btn text-xs sm:text-sm bg-amber-500 hover:bg-amber-600 text-white font-bold px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> <span>列印/匯出功課</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex-grow w-full">
+
+        <!-- Student Information Banner -->
+        <div class="bg-gradient-to-r from-teal-700 via-emerald-600 to-amber-500 rounded-2xl p-4 sm:p-6 text-white shadow-lg mb-6 relative overflow-hidden">
+            <div class="absolute -right-8 -bottom-8 opacity-15 text-9xl pointer-events-none">
+                <i class="fa-solid fa-bowl-food"></i>
+            </div>
+            <div class="relative z-10">
+                <div class="flex flex-wrap items-center justify-between gap-1.5 mb-2">
+                    <span class="inline-block bg-white/20 backdrop-blur-md text-white text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full font-bold">
+                        <i class="fa-solid fa-graduation-cap mr-1"></i>中學生健康教育 / 家政科 / 健體科專用
+                    </span>
+                    <span class="text-[11px] text-emerald-100"><i class="fa-solid fa-scale-balanced mr-1"></i>內建 100g 數據庫與常見單位換算</span>
+                </div>
+                <h2 class="text-lg sm:text-2xl font-extrabold mb-1">記錄你的一日四餐，即時分析熱量與金字塔均衡度！</h2>
+                <p class="text-xs text-emerald-100 max-w-3xl leading-relaxed">
+                    同學可以在下方四餐選單直接選擇食物，或者點擊<b>「自訂食物」</b>輸入食物名稱與份量，系統會按 <b>100g 標準營養數據庫</b>自動推算！
+                </p>
+            </div>
+
+            <!-- Student Form Inputs -->
+            <div class="mt-4 pt-3 border-t border-white/20 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
+                <div>
+                    <label class="font-semibold block mb-1"><i class="fa-solid fa-user mr-1"></i>學生姓名：</label>
+                    <input type="text" id="studentName" placeholder="例: 陳大文" oninput="calculateNutrition()" class="bg-white/10 placeholder-emerald-200/70 border border-white/30 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:bg-white/20 w-full text-xs">
+                </div>
+                <div>
+                    <label class="font-semibold block mb-1"><i class="fa-solid fa-school mr-1"></i>班別 / 學號：</label>
+                    <input type="text" id="studentClass" placeholder="例: 3A (12)" class="bg-white/10 placeholder-emerald-200/70 border border-white/30 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:bg-white/20 w-full text-xs">
+                </div>
+                <div>
+                    <label class="font-semibold block mb-1"><i class="fa-solid fa-venus-mars mr-1"></i>性別 (計算建議量)：</label>
+                    <select id="studentGender" onchange="calculateNutrition()" class="bg-white/10 border border-white/30 rounded-lg px-2 py-1.5 text-white focus:outline-none focus:bg-white/20 w-full text-xs [&>option]:text-slate-800">
+                        <option value="male">男同學 (建議 ~2300 kcal)</option>
+                        <option value="female">女同學 (建议 ~1900 kcal)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-semibold block mb-1"><i class="fa-solid fa-person-running mr-1"></i>日常活動量：</label>
+                    <select id="activityLevel" onchange="calculateNutrition()" class="bg-white/10 border border-white/30 rounded-lg px-2 py-1.5 text-white focus:outline-none focus:bg-white/20 w-full text-xs [&>option]:text-slate-800">
+                        <option value="1.2">輕度 (坐居多 / 少運動)</option>
+                        <option value="1.375" selected>中度 (日常上學 / 適度運動)</option>
+                        <option value="1.55">高度 (校隊 / 每天運動)</option>
+                    </select>
+                </div>
+                <div class="col-span-2 sm:col-span-1">
+                    <label class="font-semibold block mb-1"><i class="fa-solid fa-calendar-day mr-1"></i>紀錄日期：</label>
+                    <input type="date" id="recordDate" class="bg-white/10 border border-white/30 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:bg-white/20 w-full text-xs">
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1: Meal Food Selection Cards -->
+        <div class="mb-8">
+            <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+                <h2 class="text-base sm:text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <span class="bg-emerald-600 text-white w-6 h-6 sm:w-7 sm:h-7 rounded-lg inline-flex items-center justify-center text-xs sm:text-sm shadow-sm">1</span>
+                    填寫一日四餐膳食紀錄 (預設選單 + 自訂食物)
+                </h2>
+                <button onclick="openCustomFoodModal()" class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-plus-circle"></i> <span>＋ 找不到食物？自訂加入</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- 早餐 Breakfast Card -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm meal-card flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3 pb-2 border-b border-amber-100">
+                            <h3 class="font-bold text-base text-amber-600 flex items-center gap-2">
+                                <i class="fa-solid fa-sun text-amber-500 text-lg"></i> 早餐 (Breakfast)
+                            </h3>
+                            <span id="badge-breakfast" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">0 千卡</span>
+                        </div>
+                        
+                        <!-- Select controls -->
+                        <div class="grid grid-cols-12 gap-1.5 mb-3">
+                            <select id="preset-breakfast" class="col-span-6 text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-amber-400 focus:outline-none">
+                                <option value="">-- 選擇港式早餐 --</option>
+                            </select>
+                            <select id="portion-breakfast" class="col-span-3 text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-amber-400 focus:outline-none">
+                                <option value="1碗">1 碗</option>
+                                <option value="1件">1 件/塊</option>
+                                <option value="1杯">1 杯</option>
+                                <option value="1份" selected>1 份</option>
+                                <option value="100g">100g</option>
+                                <option value="200g">200g</option>
+                                <option value="300g">300g</option>
+                            </select>
+                            <button onclick="addPresetMealFood('breakfast')" class="touch-action-btn col-span-3 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus"></i> 新增
+                            </button>
+                        </div>
+
+                        <!-- Added Food List -->
+                        <div id="list-breakfast" class="space-y-2 min-h-[50px]">
+                            <p class="text-xs text-slate-400 text-center py-3 italic border border-dashed border-slate-200 rounded-xl">未有加入早餐食物</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 午餐 Lunch Card -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm meal-card flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3 pb-2 border-b border-teal-100">
+                            <h3 class="font-bold text-base text-teal-600 flex items-center gap-2">
+                                <i class="fa-solid fa-utensils text-teal-500 text-lg"></i> 午餐 (Lunch)
+                            </h3>
+                            <span id="badge-lunch" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">0 千卡</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-12 gap-1.5 mb-3">
+                            <select id="preset-lunch" class="col-span-6 text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-teal-400 focus:outline-none">
+                                <option value="">-- 選擇午餐/學校飯盒 --</option>
+                            </select>
+                            <select id="portion-lunch" class="col-span-3 text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-teal-400 focus:outline-none">
+                                <option value="1碟">1 碟</option>
+                                <option value="1盒" selected>1 盒</option>
+                                <option value="1碗">1 碗</option>
+                                <option value="1杯">1 杯</option>
+                                <option value="1份">1 份</option>
+                                <option value="200g">200g</option>
+                                <option value="350g">350g</option>
+                            </select>
+                            <button onclick="addPresetMealFood('lunch')" class="touch-action-btn col-span-3 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus"></i> 新增
+                            </button>
+                        </div>
+
+                        <div id="list-lunch" class="space-y-2 min-h-[50px]">
+                            <p class="text-xs text-slate-400 text-center py-3 italic border border-dashed border-slate-200 rounded-xl">未有加入午餐食物</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 晚餐 Dinner Card -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm meal-card flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3 pb-2 border-b border-indigo-100">
+                            <h3 class="font-bold text-base text-indigo-600 flex items-center gap-2">
+                                <i class="fa-solid fa-moon text-indigo-500 text-lg"></i> 晚餐 (Dinner)
+                            </h3>
+                            <span id="badge-dinner" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">0 千卡</span>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-1.5 mb-3">
+                            <select id="preset-dinner" class="col-span-6 text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                                <option value="">-- 選擇家庭晚餐小菜 --</option>
+                            </select>
+                            <select id="portion-dinner" class="col-span-3 text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                                <option value="1碗" selected>1 碗</option>
+                                <option value="1碟">1 碟</option>
+                                <option value="1件">1 件</option>
+                                <option value="1份">1 份</option>
+                                <option value="150g">150g</option>
+                                <option value="250g">250g</option>
+                            </select>
+                            <button onclick="addPresetMealFood('dinner')" class="touch-action-btn col-span-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus"></i> 新增
+                            </button>
+                        </div>
+
+                        <div id="list-dinner" class="space-y-2 min-h-[50px]">
+                            <p class="text-xs text-slate-400 text-center py-3 italic border border-dashed border-slate-200 rounded-xl">未有加入晚餐食物</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 霄夜 Snack Card -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm meal-card flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3 pb-2 border-b border-purple-100">
+                            <h3 class="font-bold text-base text-purple-600 flex items-center gap-2">
+                                <i class="fa-solid fa-cookie-bite text-purple-500 text-lg"></i> 霄夜 / 小食 (Snack)
+                            </h3>
+                            <span id="badge-snack" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">0 千卡</span>
+                        </div>
+
+                        <div class="grid grid-cols-12 gap-1.5 mb-3">
+                            <select id="preset-snack" class="col-span-6 text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                                <option value="">-- 選擇小食/街頭小食/飲品 --</option>
+                            </select>
+                            <select id="portion-snack" class="col-span-3 text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                                <option value="1件" selected>1 件/串</option>
+                                <option value="1杯">1 杯</option>
+                                <option value="1包">1 包</option>
+                                <option value="1碗">1 碗</option>
+                                <option value="100g">100g</option>
+                            </select>
+                            <button onclick="addPresetMealFood('snack')" class="touch-action-btn col-span-3 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus"></i> 新增
+                            </button>
+                        </div>
+
+                        <div id="list-snack" class="space-y-2 min-h-[50px]">
+                            <p class="text-xs text-slate-400 text-center py-3 italic border border-dashed border-slate-200 rounded-xl">未有加入霄夜小食</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Step 2: Summary Dashboard & Nutrients Table -->
+        <div class="mb-8 print-break-inside-prevent">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-base sm:text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <span class="bg-emerald-600 text-white w-6 h-6 sm:w-7 sm:h-7 rounded-lg inline-flex items-center justify-center text-xs sm:text-sm shadow-sm">2</span>
+                    一日總營養成份與能量分析表 (換算至克數)
+                </h2>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 text-center shadow-sm">
+                    <div class="text-[11px] text-slate-500 font-medium mb-0.5">總能量攝取 (Calories)</div>
+                    <div id="kpi-calories" class="text-xl sm:text-2xl font-black text-amber-500">0</div>
+                    <div class="text-[10px] text-slate-400">/ <span id="target-calories">2300</span> kcal 千卡</div>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 text-center shadow-sm">
+                    <div class="text-[11px] text-slate-500 font-medium mb-0.5">碳水化合物 (Carbs)</div>
+                    <div id="kpi-carb" class="text-lg sm:text-xl font-bold text-blue-600">0 g</div>
+                    <div class="text-[10px] text-slate-400" id="pct-carb">0% 總熱量</div>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 text-center shadow-sm">
+                    <div class="text-[11px] text-slate-500 font-medium mb-0.5">蛋白質 (Protein)</div>
+                    <div id="kpi-protein" class="text-lg sm:text-xl font-bold text-rose-500">0 g</div>
+                    <div class="text-[10px] text-slate-400" id="pct-protein">0% 總熱量</div>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 text-center shadow-sm">
+                    <div class="text-[11px] text-slate-500 font-medium mb-0.5">總脂肪 (Total Fat)</div>
+                    <div id="kpi-fat" class="text-lg sm:text-xl font-bold text-emerald-600">0 g</div>
+                    <div class="text-[10px] text-slate-400" id="pct-fat">0% 總熱量</div>
+                </div>
+            </div>
+
+            <!-- Detailed Table Container -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold whitespace-nowrap">
+                                <th class="p-2.5">餐次</th>
+                                <th class="p-2.5">食物名稱與進食份量</th>
+                                <th class="p-2.5 text-center">估算重量</th>
+                                <th class="p-2.5 text-right">熱量 (kcal)</th>
+                                <th class="p-2.5 text-right">碳水 (g)</th>
+                                <th class="p-2.5 text-right">蛋白 (g)</th>
+                                <th class="p-2.5 text-right">脂肪 (g)</th>
+                                <th class="p-2.5 text-right">纖維 (g)</th>
+                                <th class="p-2.5 text-right">鈣 (mg)</th>
+                                <th class="p-2.5 text-right">鈉 (mg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailed-summary-tbody" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="10" class="text-center py-6 text-slate-400 italic">請在上方的四餐表中加入食物，系統將按 100g 標準數據自動換算營養...</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-slate-50 font-bold border-t-2 border-slate-300">
+                            <tr class="whitespace-nowrap">
+                                <td colspan="3" class="p-2.5 text-slate-800">全日總計 (Daily Total)</td>
+                                <td id="foot-cal" class="p-2.5 text-right text-amber-600">0</td>
+                                <td id="foot-carb" class="p-2.5 text-right text-blue-600">0</td>
+                                <td id="foot-pro" class="p-2.5 text-right text-rose-600">0</td>
+                                <td id="foot-fat" class="p-2.5 text-right text-emerald-600">0</td>
+                                <td id="foot-fiber" class="p-2.5 text-right">0</td>
+                                <td id="foot-calcium" class="p-2.5 text-right">0</td>
+                                <td id="foot-sodium" class="p-2.5 text-right">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Visual Doughnut Charts -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 no-print">
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+                    <h4 class="text-xs font-bold text-slate-700 mb-1">三大營養素熱量分佈比例</h4>
+                    <div class="w-44 h-44 relative">
+                        <canvas id="macroChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center">
+                    <h4 class="text-xs font-bold text-slate-700 mb-1">四餐卡路里分配比例</h4>
+                    <div class="w-44 h-44 relative">
+                        <canvas id="mealChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Food Pyramid Comparison -->
+        <div class="mb-8 print-break-inside-prevent">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-base sm:text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                    <span class="bg-emerald-600 text-white w-6 h-6 sm:w-7 sm:h-7 rounded-lg inline-flex items-center justify-center text-xs sm:text-sm shadow-sm">3</span>
+                    香港衛生署「健康飲食金字塔」對照分析
+                </h2>
+            </div>
+
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-700 text-sm mb-1 border-b pb-2 flex items-center justify-between">
+                    <span><i class="fa-solid fa-layer-group text-emerald-500 mr-1.5"></i>六大類食物每日建議攝取量進度</span>
+                    <span class="text-[10px] text-slate-400 font-normal">香港衛生署中學生標準</span>
+                </h3>
+
+                <!-- Grains -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-amber-800"><i class="fa-solid fa-bowl-rice mr-1"></i>1. 穀物類 (Grains) - 建議 3-4 碗</span>
+                        <span id="label-pyramid-grain">0 / 4 碗</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div id="bar-pyramid-grain" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Vegetables -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-emerald-800"><i class="fa-solid fa-carrot mr-1"></i>2. 蔬菜類 (Vegetables) - 建議至少 3 份</span>
+                        <span id="label-pyramid-veg">0 / 3 份</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div id="bar-pyramid-veg" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Fruits -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-orange-800"><i class="fa-solid fa-apple-whole mr-1"></i>3. 水果類 (Fruits) - 建議至少 2 份</span>
+                        <span id="label-pyramid-fruit">0 / 2 份</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div id="bar-pyramid-fruit" class="bg-orange-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Meat -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-rose-800"><i class="fa-solid fa-drumstick-bite mr-1"></i>4. 肉魚蛋豆類 - 建議 5-7 兩</span>
+                        <span id="label-pyramid-meat">0 / 5 兩</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div id="bar-pyramid-meat" class="bg-rose-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Milk -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-blue-800"><i class="fa-solid fa-glass-water mr-1"></i>5. 奶類及代替品 - 建議 2 杯</span>
+                        <span id="label-pyramid-milk">0 / 2 杯</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div id="bar-pyramid-milk" class="bg-blue-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Oils Salt Sugar -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-purple-800"><i class="fa-solid fa-bottle-droplet mr-1"></i>6. 油鹽糖類 (吃最少)</span>
+                        <span id="label-pyramid-junk" class="text-emerald-600 font-bold">良好 (少吃)</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div id="bar-pyramid-junk" class="bg-purple-500 h-full rounded-full transition-all duration-500" style="width: 10%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Advice & Reflection -->
+        <div class="mb-8 print-break-inside-prevent">
+            <div id="recommendation-card" class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-4 sm:p-5 border-2 border-emerald-200 shadow-sm relative">
+                <div class="flex items-start gap-3">
+                    <div class="bg-emerald-600 text-white p-2.5 rounded-2xl shadow-md text-xl hidden sm:block shrink-0">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <div class="space-y-2.5 w-full">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base font-black text-emerald-900 flex items-center gap-1.5">
+                                營養師膳食評價與改善建議 (廣東話)
+                            </h3>
+                            <span class="text-[10px] bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                                <i class="fa-solid fa-lightbulb mr-0.5"></i>即時診斷
+                            </span>
+                        </div>
+                        
+                        <div id="student-evaluation-text" class="text-xs text-slate-700 leading-relaxed space-y-1.5">
+                            <p class="font-semibold text-emerald-800">同學，你今日嘅飲食分析出來啦！</p>
+                            <p>請喺上方填寫你今日食咗嘅餐點，系統會即時幫你分析係咪合乎「均衡飲食」原則！</p>
+                        </div>
+
+                        <div id="actionable-tips" class="pt-2 border-t border-emerald-200/60 mt-2">
+                            <h4 class="font-bold text-xs text-emerald-900 uppercase tracking-wider mb-1.5">💡 學校小食部與茶餐廳點餐改善貼士：</h4>
+                            <ul id="tips-list" class="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                                <li>點餐時儘量要求「少汁/去汁」，可以減少過多油脂同味精鈉質。</li>
+                                <li>去學校小食部買嘢食，可以考慮買無糖豆漿或低脂鮮奶代替高糖汽水與珍珠奶茶！</li>
+                                <li>每日記得至少食 2 份水果（例如帶個蘋果或香蕉返學校食）。</li>
+                            </ul>
+                        </div>
+
+                        <!-- Reflection Input Box -->
+                        <div class="pt-3 border-t border-emerald-200/60 mt-2">
+                            <label class="block font-bold text-xs text-emerald-900 mb-1">
+                                <i class="fa-solid fa-pen-nib mr-1"></i>學生個人反思（供呈交功課用）：
+                            </label>
+                            <textarea id="studentReflection" rows="2" placeholder="寫下你對今日飲食的檢討及明天的改進目標（例如：明天午餐少喝凍檸茶改喝清水，並多吃一份蔬菜...）" class="w-full p-2 text-xs rounded-xl border border-emerald-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none bg-white/80"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Custom Food Entry Modal -->
+    <div id="customFoodModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in duration-200">
+            <button onclick="closeCustomFoodModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-lg w-8 h-8 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-2 mb-3">
+                <div class="bg-amber-100 text-amber-600 p-2 rounded-xl">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">自訂加入新食物</h3>
+                    <p class="text-[10px] text-slate-400">同學只需填寫名稱與份量，系統會自動按100g數據庫推算營養！</p>
+                </div>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">加入至哪一個餐次？</label>
+                    <select id="modal-meal-target" class="w-full border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-emerald-400 focus:outline-none">
+                        <option value="breakfast">早餐 (Breakfast)</option>
+                        <option value="lunch" selected>午餐 (Lunch)</option>
+                        <option value="dinner">晚餐 (Dinner)</option>
+                        <option value="snack">宵夜/小食 (Snack)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">食物名稱：</label>
+                    <input type="text" id="modal-food-name" placeholder="例如: 鹽酥雞 / 車仔麵 / 港式蛋撻" class="w-full border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-emerald-400 focus:outline-none">
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">進食份量：</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="modal-food-portion" placeholder="例如: 1碗, 1份, 200g" value="1份" class="border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-emerald-400 focus:outline-none">
+                        <select id="modal-portion-quick" onchange="document.getElementById('modal-food-portion').value=this.value" class="border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-emerald-400 focus:outline-none text-slate-500">
+                            <option value="1份">-- 快捷選擇 --</option>
+                            <option value="1碗">1 碗 (~200g)</option>
+                            <option value="1碟">1 碟 (~350g)</option>
+                            <option value="1件">1 件 (~120g)</option>
+                            <option value="1杯">1 杯 (~250g)</option>
+                            <option value="150g">150 克 (g)</option>
+                            <option value="250g">250 克 (g)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 leading-relaxed">
+                    💡 <b>提示：</b> 系統會自動識別名稱中的關鍵字（如：雞、牛、麵、飯、炸、茶等），以 100g 為標準基準動態估算卡路里與營養素。
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeCustomFoodModal()" class="w-1/2 py-2 border border-slate-300 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition">取消</button>
+                    <button onclick="submitCustomFoodModal()" class="w-1/2 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow transition">確認新增</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-slate-800 text-slate-400 py-4 text-center text-xs border-t border-slate-700 no-print">
+        <div class="max-w-7xl mx-auto px-4">
+            <p class="font-medium text-slate-300 mb-0.5">今日食左咩? - 香港中學生一日膳食與營養分析計算機</p>
+            <p class="text-[11px] text-slate-400">本工具營養數據均參考香港衛生署「健康飲食金字塔」與標準食物成分表，統一採用 100g 基準精確估算。</p>
+            <p class="mt-1.5 text-[10px] text-slate-500">&copy; 2026 學校健康膳食推廣專案組</p>
+        </div>
+    </footer>
+
+    <script>
+        // -------------------------------------------------------------
+        // Built-in Standardized 100g Food Database (Per 100g Reference)
+        // -------------------------------------------------------------
+        const FOOD_DB_100G = {
+            // Breakfast items
+            '沙嗲牛肉麵': { name: '沙嗲牛肉麵', baseGrams: 450, cal: 138, carb: 14.4, pro: 4.9, fat: 7.1, fiber: 0.4, calcium: 7, sodium: 388, grain: 0.33, veg: 0, fruit: 0, meat: 0.44, milk: 0, junk: 0.66 },
+            '餐肉煎蛋公仔麵': { name: '餐肉煎蛋公仔麵', baseGrams: 450, cal: 151, carb: 13.7, pro: 4.0, fat: 8.8, fiber: 0.4, calcium: 8, sodium: 411, grain: 0.33, veg: 0, fruit: 0, meat: 0.44, milk: 0, junk: 0.66 },
+            '火腿蛋三文治': { name: '火腿蛋三文治', baseGrams: 150, cal: 213, carb: 23.3, pro: 10.0, fat: 9.3, fiber: 1.3, calcium: 53, sodium: 500, grain: 0.66, veg: 0, fruit: 0, meat: 1.0, milk: 0, junk: 0.66 },
+            '菠蘿油': { name: '菠蘿油', baseGrams: 120, cal: 300, carb: 37.5, pro: 5.0, fat: 15.0, fiber: 1.0, calcium: 20, sodium: 183, grain: 1.25, veg: 0, fruit: 0, meat: 0, milk: 0, junk: 2.5 },
+            '雪菜肉絲米粉': { name: '雪菜肉絲米粉', baseGrams: 400, cal: 88, carb: 13.0, pro: 3.5, fat: 2.5, fiber: 0.6, calcium: 8, sodium: 350, grain: 0.38, veg: 0.12, fruit: 0, meat: 0.25, milk: 0, junk: 0.25 },
+            '蒸饅頭/包子': { name: '蒸饅頭/包子', baseGrams: 100, cal: 220, carb: 45.0, pro: 7.0, fat: 1.5, fiber: 1.5, calcium: 18, sodium: 120, grain: 1.0, veg: 0, fruit: 0, meat: 0.2, milk: 0, junk: 0.2 },
+            '港式腸粉': { name: '港式腸粉', baseGrams: 200, cal: 140, carb: 24.0, pro: 2.5, fat: 3.8, fiber: 0.8, calcium: 12, sodium: 380, grain: 0.6, veg: 0, fruit: 0, meat: 0, milk: 0, junk: 0.5 },
+            '高鈣低脂牛奶': { name: '高鈣低脂牛奶', baseGrams: 250, cal: 48, carb: 4.8, pro: 3.2, fat: 1.4, fiber: 0, calcium: 104, sodium: 42, grain: 0, veg: 0, fruit: 0, meat: 0, milk: 0.4, junk: 0 },
+            '港式熱奶茶': { name: '港式熱奶茶', baseGrams: 200, cal: 70, carb: 9.0, pro: 1.5, fat: 3.0, fiber: 0, calcium: 55, sodium: 22, grain: 0, veg: 0, fruit: 0, meat: 0, milk: 0.25, junk: 1.0 },
+
+            // Lunch items
+            '燒味雙拼飯': { name: '燒味雙拼飯', baseGrams: 450, cal: 182, carb: 21.1, pro: 7.1, fat: 7.5, fiber: 0.4, calcium: 9, sodium: 300, grain: 0.55, veg: 0.04, fruit: 0, meat: 0.77, milk: 0, junk: 0.66 },
+            '菜心炒肉片配白飯': { name: '菜心炒肉片配白飯', baseGrams: 450, cal: 128, carb: 16.6, pro: 5.7, fat: 4.0, fiber: 1.0, calcium: 26, sodium: 195, grain: 0.44, veg: 0.33, fruit: 0, meat: 0.44, milk: 0, junk: 0.22 },
+            '鮮蝦雲吞麵': { name: '鮮蝦雲吞麵', baseGrams: 380, cal: 110, carb: 15.2, pro: 5.7, fat: 2.8, fiber: 0.5, calcium: 14, sodium: 421, grain: 0.39, veg: 0.08, fruit: 0, meat: 0.52, milk: 0, junk: 0.52 },
+            '焗豬扒飯': { name: '焗豬扒飯', baseGrams: 500, cal: 180, carb: 21.0, pro: 7.0, fat: 7.6, fiber: 0.6, calcium: 16, sodium: 290, grain: 0.6, veg: 0.1, fruit: 0, meat: 0.6, milk: 0.04, junk: 0.6 },
+            '茄汁肉醬意粉': { name: '茄汁肉醬意粉', baseGrams: 400, cal: 137, carb: 18.0, pro: 5.5, fat: 4.5, fiber: 0.8, calcium: 9, sodium: 212, grain: 0.5, veg: 0.12, fruit: 0, meat: 0.37, milk: 0, junk: 0.25 },
+            '日式咖喱雞扒飯': { name: '日式咖喱雞扒飯', baseGrams: 450, cal: 165, carb: 19.5, pro: 6.8, fat: 6.5, fiber: 0.8, calcium: 12, sodium: 310, grain: 0.5, veg: 0.1, fruit: 0, meat: 0.6, milk: 0, junk: 0.5 },
+            '凍檸檬茶': { name: '凍檸檬茶', baseGrams: 300, cal: 30, carb: 7.3, pro: 0.1, fat: 0, fiber: 0.1, calcium: 3, sodium: 5, grain: 0, veg: 0, fruit: 0, meat: 0, milk: 0, junk: 0.33 },
+
+            // Dinner items
+            '清蒸魚': { name: '清蒸魚', baseGrams: 150, cal: 106, carb: 1.3, pro: 16.0, fat: 4.0, fiber: 0, calcium: 23, sodium: 233, grain: 0, veg: 0, fruit: 0, meat: 1.66, milk: 0, junk: 0 },
+            '白飯': { name: '白飯', baseGrams: 200, cal: 130, carb: 29.0, pro: 2.5, fat: 0.3, fiber: 0.5, calcium: 5, sodium: 2, grain: 0.5, veg: 0, fruit: 0, meat: 0, milk: 0, junk: 0 },
+            '蒜蓉炒菜心': { name: '蒜蓉炒菜心', baseGrams: 150, cal: 80, carb: 4.0, pro: 2.6, fat: 6.0, fiber: 2.8, calcium: 93, sodium: 280, grain: 0, veg: 1.0, fruit: 0, meat: 0, milk: 0, junk: 0 },
+            '番茄炒蛋': { name: '番茄炒蛋', baseGrams: 200, cal: 115, carb: 5.0, pro: 5.5, fat: 8.0, fiber: 1.0, calcium: 22, sodium: 240, grain: 0, veg: 0.5, fruit: 0, meat: 0.75, milk: 0, junk: 0.5 },
+            '蒸水蛋/蒸肉餅': { name: '蒸水蛋/蒸肉餅', baseGrams: 150, cal: 140, carb: 2.0, pro: 11.0, fat: 9.5, fiber: 0.1, calcium: 30, sodium: 320, grain: 0, veg: 0, fruit: 0, meat: 1.2, milk: 0, junk: 0.3 },
+            '豆腐芥菜瘦肉湯': { name: '豆腐芥菜瘦肉湯', baseGrams: 300, cal: 36, carb: 1.3, pro: 4.0, fat: 1.6, fiber: 0.6, calcium: 36, sodium: 126, grain: 0, veg: 0.26, fruit: 0, meat: 0.33, milk: 0, junk: 0 },
+
+            // Snack items
+            '珍珠奶茶': { name: '珍珠奶茶', baseGrams: 400, cal: 95, carb: 14.5, pro: 0.5, fat: 3.7, fiber: 0, calcium: 10, sodium: 20, grain: 0.12, veg: 0, fruit: 0, meat: 0, milk: 0.05, junk: 0.75 },
+            '生炸雞髀': { name: '生炸雞髀', baseGrams: 180, cal: 211, carb: 4.4, pro: 15.5, fat: 14.4, fiber: 0, calcium: 8, sodium: 344, grain: 0, veg: 0, fruit: 0, meat: 1.38, milk: 0, junk: 1.11 },
+            '法式西多士': { name: '法式西多士', baseGrams: 160, cal: 325, carb: 34.3, pro: 6.2, fat: 17.5, fiber: 0.9, calcium: 37, sodium: 262, grain: 0.93, veg: 0, fruit: 0, meat: 0.62, milk: 0, junk: 1.87 },
+            '蒸燒賣': { name: '蒸燒賣', baseGrams: 100, cal: 250, carb: 22.0, pro: 10.0, fat: 13.0, fiber: 0.5, calcium: 20, sodium: 580, grain: 0.5, veg: 0, fruit: 0, meat: 1.0, milk: 0, junk: 2.0 },
+            '街頭煎釀三寶': { name: '街頭煎釀三寶', baseGrams: 150, cal: 220, carb: 12.0, pro: 8.0, fat: 15.0, fiber: 1.2, calcium: 25, sodium: 450, grain: 0, veg: 0.3, fruit: 0, meat: 0.8, milk: 0, junk: 1.5 },
+            '街頭碗仔翅': { name: '街頭碗仔翅', baseGrams: 250, cal: 75, carb: 9.0, pro: 4.5, fat: 2.2, fiber: 0.4, calcium: 15, sodium: 520, grain: 0.2, veg: 0, fruit: 0, meat: 0.4, milk: 0, junk: 0.8 },
+            '蘋果/香蕉': { name: '蘋果/香蕉', baseGrams: 150, cal: 60, carb: 15.3, pro: 0.3, fat: 0.2, fiber: 2.3, calcium: 8, sodium: 1, grain: 0, veg: 0, fruit: 0.66, milk: 0, junk: 0 },
+            '薯片': { name: '薯片', baseGrams: 50, cal: 560, carb: 60.0, pro: 6.0, fat: 34.0, fiber: 3.0, calcium: 20, sodium: 640, grain: 1.0, veg: 0, fruit: 0, meat: 0, milk: 0, junk: 6.0 }
+        };
+
+        const PRESET_MEALS = {
+            breakfast: ['沙嗲牛肉麵', '餐肉煎蛋公仔麵', '火腿蛋三文治', '菠蘿油', '雪菜肉絲米粉', '蒸饅頭/包子', '港式腸粉', '高鈣低脂牛奶', '港式熱奶茶'],
+            lunch: ['燒味雙拼飯', '菜心炒肉片配白飯', '鮮蝦雲吞麵', '焗豬扒飯', '茄汁肉醬意粉', '日式咖喱雞扒飯', '凍檸檬茶'],
+            dinner: ['清蒸魚', '白飯', '蒜蓉炒菜心', '番茄炒蛋', '蒸水蛋/蒸肉餅', '豆腐芥菜瘦肉湯'],
+            snack: ['珍珠奶茶', '生炸雞髀', '法式西多士', '蒸燒賣', '街頭煎釀三寶', '街頭碗仔翅', '蘋果/香蕉', '薯片']
+        };
+
+        let userMealState = { breakfast: [], lunch: [], dinner: [], snack: [] };
+        let macroChartInstance = null;
+        let mealChartInstance = null;
+
+        window.onload = function() {
+            document.getElementById('recordDate').valueAsDate = new Date();
+            populatePresets();
+            initCharts();
+            calculateNutrition();
+        };
+
+        function populatePresets() {
+            ['breakfast', 'lunch', 'dinner', 'snack'].forEach(meal => {
+                const select = document.getElementById(`preset-${meal}`);
+                PRESET_MEALS[meal].forEach(key => {
+                    const item = FOOD_DB_100G[key];
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = `${item.name} (${item.cal} kcal/100g)`;
+                    select.appendChild(opt);
+                });
+            });
+        }
+
+        // Modal triggers
+        function openCustomFoodModal() {
+            document.getElementById('customFoodModal').classList.remove('hidden');
+        }
+
+        function closeCustomFoodModal() {
+            document.getElementById('customFoodModal').classList.add('hidden');
+            document.getElementById('modal-food-name').value = '';
+        }
+
+        function submitCustomFoodModal() {
+            const meal = document.getElementById('modal-meal-target').value;
+            const name = document.getElementById('modal-food-name').value.trim();
+            const portion = document.getElementById('modal-food-portion').value.trim();
+
+            if (!name) {
+                alert('請填寫食物名稱！');
+                return;
+            }
+
+            addCustomMealFood(meal, name, portion);
+            closeCustomFoodModal();
+        }
+
+        // Convert input portion into estimated grams
+        function parsePortionToGrams(portionStr, defaultBaseGrams = 150) {
+            if (!portionStr) return defaultBaseGrams;
+            const str = portionStr.toString().trim().toLowerCase();
+
+            // Direct gram match
+            const gMatch = str.match(/(\d+(\.\d+)?)\s*(g|克)/);
+            if (gMatch) {
+                return parseFloat(gMatch[1]);
+            }
+
+            // Numeric extraction
+            const numMatch = str.match(/(\d+(\.\d+)?)/);
+            const num = numMatch ? parseFloat(numMatch[1]) : 1;
+
+            if (str.includes('碗')) return num * 200;
+            if (str.includes('盒') || str.includes('碟') || str.includes('盤')) return num * 350;
+            if (str.includes('杯')) return num * 250;
+            if (str.includes('件') || str.includes('塊') || str.includes('串') || str.includes('包')) return num * 120;
+            if (str.includes('粒') || str.includes('隻')) return num * 25;
+
+            return num * defaultBaseGrams;
+        }
+
+        function estimate100gNutrients(foodName) {
+            const name = foodName.trim();
+
+            for (let key in FOOD_DB_100G) {
+                if (key.includes(name) || name.includes(key)) {
+                    return { ...FOOD_DB_100G[key] };
+                }
+            }
+
+            // Standard fallback base (Per 100g)
+            let base100g = {
+                name: name,
+                baseGrams: 150,
+                cal: 160,
+                carb: 22.0,
+                pro: 6.0,
+                fat: 5.5,
+                fiber: 1.0,
+                calcium: 20,
+                sodium: 250,
+                grain: 0.3,
+                veg: 0.1,
+                fruit: 0,
+                meat: 0.3,
+                milk: 0,
+                junk: 0.3
+            };
+
+            const isFried = /炸|煎|焗|煲|酥|油炒|脆/.test(name);
+            const isNoodleOrRice = /飯|麵|粉|通粉|意粉|米線|河粉|烏冬/.test(name);
+            const isMeat = /肉|牛|雞|豬|鴨|鵝|排|魚|蝦|排骨|叉燒|漢堡/.test(name);
+            const isVeg = /菜|沙律|瓜|菇|西蘭花|菠菜|茄子/.test(name);
+            const isFruit = /果|蘋果|香蕉|橙|提子|西瓜|草莓|芒/.test(name);
+            const isDrink = /茶|奶|水|汁|咖啡|汽水|可樂|可可|沙冰/.test(name);
+            const isSnack = /糖|蛋糕|餅|朱古力|雪糕|薯片|珍珠|甜/.test(name);
+
+            if (isDrink) {
+                base100g.cal = 45; base100g.carb = 8.0; base100g.pro = 0.5; base100g.fat = 1.2;
+                base100g.grain = 0; base100g.meat = 0; base100g.junk = 0.5;
+                if (/無糖|走糖|清茶/.test(name)) { base100g.cal = 5; base100g.carb = 0.5; base100g.junk = 0; }
+            } else if (isFruit) {
+                base100g.cal = 52; base100g.carb = 13.5; base100g.pro = 0.4; base100g.fat = 0.2; base100g.fiber = 2.0;
+                base100g.fruit = 0.5; base100g.grain = 0; base100g.meat = 0; base100g.junk = 0;
+            } else if (isVeg && !isNoodleOrRice && !isMeat) {
+                base100g.cal = 45; base100g.carb = 3.5; base100g.pro = 2.0; base100g.fat = 2.5; base100g.fiber = 2.5;
+                base100g.calcium = 70; base100g.veg = 0.8; base100g.grain = 0; base100g.meat = 0; base100g.junk = 0;
+            } else {
+                if (isNoodleOrRice) { base100g.cal += 40; base100g.carb += 12; base100g.grain += 0.3; }
+                if (isMeat) { base100g.cal += 50; base100g.pro += 8; base100g.fat += 4; base100g.meat += 0.5; }
+                if (isFried) { base100g.cal += 90; base100g.fat += 8; base100g.sodium += 150; base100g.junk += 0.8; }
+                if (isSnack) { base100g.cal += 120; base100g.carb += 18; base100g.fat += 6; base100g.junk += 1.0; }
+            }
+
+            return base100g;
+        }
+
+        function addPresetMealFood(meal) {
+            const selectKey = document.getElementById(`preset-${meal}`).value;
+            const portionStr = document.getElementById(`portion-${meal}`).value;
+
+            if (!selectKey) {
+                alert('請先選擇食物！');
+                return;
+            }
+
+            addCustomMealFood(meal, selectKey, portionStr);
+            document.getElementById(`preset-${meal}`).value = "";
+        }
+
+        function addCustomMealFood(meal, foodName, portionStr) {
+            const base100g = estimate100gNutrients(foodName);
+            const calculatedGrams = parsePortionToGrams(portionStr, base100g.baseGrams);
+            const factor = calculatedGrams / 100;
+
+            const foodEntry = {
+                id: 'usr_' + Date.now() + Math.random().toString(36).substr(2, 4),
+                name: base100g.name,
+                portionStr: portionStr || '1份',
+                grams: Math.round(calculatedGrams),
+                cal: Math.round(base100g.cal * factor),
+                carb: Math.round(base100g.carb * factor * 10) / 10,
+                pro: Math.round(base100g.pro * factor * 10) / 10,
+                fat: Math.round(base100g.fat * factor * 10) / 10,
+                fiber: Math.round(base100g.fiber * factor * 10) / 10,
+                calcium: Math.round(base100g.calcium * factor),
+                sodium: Math.round(base100g.sodium * factor),
+                grain: base100g.grain * factor,
+                veg: base100g.veg * factor,
+                fruit: base100g.fruit * factor,
+                meat: base100g.meat * factor,
+                milk: base100g.milk * factor,
+                junk: base100g.junk * factor
+            };
+
+            userMealState[meal].push(foodEntry);
+            renderMealList(meal);
+            calculateNutrition();
+        }
+
+        function removeFood(meal, id) {
+            userMealState[meal] = userMealState[meal].filter(item => item.id !== id);
+            renderMealList(meal);
+            calculateNutrition();
+        }
+
+        function resetData() {
+            if (confirm("確定要清空所有已填寫的食物紀錄嗎？")) {
+                userMealState = { breakfast: [], lunch: [], dinner: [], snack: [] };
+                ['breakfast', 'lunch', 'dinner', 'snack'].forEach(renderMealList);
+                calculateNutrition();
+            }
+        }
+
+        function renderMealList(meal) {
+            const container = document.getElementById(`list-${meal}`);
+            const list = userMealState[meal];
+
+            if (list.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3 italic border border-dashed border-slate-200 rounded-xl">未有加入食物</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            list.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex justify-between items-center bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs hover:bg-slate-100 transition';
+                itemDiv.innerHTML = `
+                    <div class="truncate pr-2">
+                        <span class="font-bold text-slate-800">${item.name}</span>
+                        <span class="text-emerald-600 font-semibold ml-1">(${item.portionStr} ≈ ${item.grams}g)</span>
+                        <div class="text-[10px] text-slate-500 mt-0.5">
+                            ~${item.cal} kcal | 碳水:${item.carb}g | 蛋白:${item.pro}g | 脂肪:${item.fat}g | 鈉:${item.sodium}mg
+                        </div>
+                    </div>
+                    <button onclick="removeFood('${meal}', '${item.id}')" class="touch-action-btn text-rose-500 hover:text-rose-700 font-bold px-2 py-1 rounded">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+
+        function calculateNutrition() {
+            let totalCal = 0, totalCarb = 0, totalPro = 0, totalFat = 0;
+            let totalFiber = 0, totalCalcium = 0, totalSodium = 0;
+
+            let pyramid = { grain: 0, veg: 0, fruit: 0, meat: 0, milk: 0, junk: 0 };
+            let mealCals = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
+
+            const tbody = document.getElementById('detailed-summary-tbody');
+            tbody.innerHTML = '';
+
+            const mealNames = {
+                breakfast: '早餐',
+                lunch: '午餐',
+                dinner: '晚餐',
+                snack: '宵夜/小食'
+            };
+
+            let rowCount = 0;
+
+            ['breakfast', 'lunch', 'dinner', 'snack'].forEach(meal => {
+                const items = userMealState[meal];
+                let mealSubCal = 0;
+
+                items.forEach(item => {
+                    rowCount++;
+                    totalCal += item.cal;
+                    totalCarb += item.carb;
+                    totalPro += item.pro;
+                    totalFat += item.fat;
+                    totalFiber += item.fiber;
+                    totalCalcium += item.calcium;
+                    totalSodium += item.sodium;
+
+                    mealSubCal += item.cal;
+
+                    pyramid.grain += item.grain || 0;
+                    pyramid.veg += item.veg || 0;
+                    pyramid.fruit += item.fruit || 0;
+                    pyramid.meat += item.meat || 0;
+                    pyramid.milk += item.milk || 0;
+                    pyramid.junk += item.junk || 0;
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50";
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-medium text-slate-600">${mealNames[meal]}</td>
+                        <td class="p-2.5 font-bold text-slate-800">${item.name} (${item.portionStr})</td>
+                        <td class="p-2.5 text-center text-slate-500 font-mono">${item.grams}g</td>
+                        <td class="p-2.5 text-right font-semibold text-amber-600">${item.cal}</td>
+                        <td class="p-2.5 text-right">${item.carb}</td>
+                        <td class="p-2.5 text-right">${item.pro}</td>
+                        <td class="p-2.5 text-right">${item.fat}</td>
+                        <td class="p-2.5 text-right text-slate-500">${item.fiber}</td>
+                        <td class="p-2.5 text-right text-slate-500">${item.calcium}</td>
+                        <td class="p-2.5 text-right text-slate-500">${item.sodium}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                mealCals[meal] = mealSubCal;
+                document.getElementById(`badge-${meal}`).textContent = `${mealSubCal} 千卡`;
+            });
+
+            if (rowCount === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-slate-400 italic">請在上方的四餐表中加入食物，系統將按 100g 標準數據自動換算營養...</td></tr>`;
+            }
+
+            // Target Calorie Target according to Gender & Activity
+            const gender = document.getElementById('studentGender').value;
+            const act = parseFloat(document.getElementById('activityLevel').value) || 1.375;
+            const baseBmr = gender === 'male' ? 1650 : 1400;
+            const targetCal = Math.round(baseBmr * act);
+            
+            document.getElementById('target-calories').textContent = targetCal;
+
+            // KPI Displays
+            document.getElementById('kpi-calories').textContent = Math.round(totalCal);
+            document.getElementById('kpi-carb').textContent = `${Math.round(totalCarb)} g`;
+            document.getElementById('kpi-protein').textContent = `${Math.round(totalPro)} g`;
+            document.getElementById('kpi-fat').textContent = `${Math.round(totalFat)} g`;
+
+            // Table Footers
+            document.getElementById('foot-cal').textContent = Math.round(totalCal);
+            document.getElementById('foot-carb').textContent = Math.round(totalCarb) + 'g';
+            document.getElementById('foot-pro').textContent = Math.round(totalPro) + 'g';
+            document.getElementById('foot-fat').textContent = Math.round(totalFat) + 'g';
+            document.getElementById('foot-fiber').textContent = Math.round(totalFiber * 10) / 10 + 'g';
+            document.getElementById('foot-calcium').textContent = Math.round(totalCalcium) + 'mg';
+            document.getElementById('foot-sodium').textContent = Math.round(totalSodium) + 'mg';
+
+            // Macro percentage
+            const carbCal = totalCarb * 4;
+            const proCal = totalPro * 4;
+            const fatCal = totalFat * 9;
+            const macroTotalCal = carbCal + proCal + fatCal || 1;
+
+            const carbPct = Math.round((carbCal / macroTotalCal) * 100);
+            const proPct = Math.round((proCal / macroTotalCal) * 100);
+            const fatPct = Math.round((fatCal / macroTotalCal) * 100);
+
+            document.getElementById('pct-carb').textContent = `${carbPct}% 總熱量`;
+            document.getElementById('pct-protein').textContent = `${proPct}% 總熱量`;
+            document.getElementById('pct-fat').textContent = `${fatPct}% 總熱量`;
+
+            updatePyramidUI(pyramid);
+            updateCharts([carbCal, proCal, fatCal], [mealCals.breakfast, mealCals.lunch, mealCals.dinner, mealCals.snack]);
+            generateAdvice(totalCal, targetCal, carbPct, proPct, fatPct, pyramid, totalSodium, totalFiber, totalCalcium);
+        }
+
+        function updatePyramidUI(pyramid) {
+            const setBar = (id, current, max, unit) => {
+                const pct = Math.min(Math.round((current / max) * 100), 100);
+                document.getElementById(`bar-${id}`).style.width = `${pct}%`;
+                document.getElementById(`label-${id}`).textContent = `${Math.round(current * 10) / 10} / ${max} ${unit}`;
+            };
+
+            setBar('pyramid-grain', pyramid.grain, 4, '碗');
+            setBar('pyramid-veg', pyramid.veg, 3, '份');
+            setBar('pyramid-fruit', pyramid.fruit, 2, '份');
+            setBar('pyramid-meat', pyramid.meat, 5, '兩');
+            setBar('pyramid-milk', pyramid.milk, 2, '杯');
+
+            const junkPct = Math.min(Math.round((pyramid.junk / 4) * 100), 100);
+            const junkBar = document.getElementById('bar-pyramid-junk');
+            const junkLabel = document.getElementById('label-pyramid-junk');
+            junkBar.style.width = `${junkPct}%`;
+
+            if (pyramid.junk > 3) {
+                junkBar.className = "bg-rose-600 h-full rounded-full transition-all duration-500";
+                junkLabel.textContent = "高油鹽糖 (偏高)";
+                junkLabel.className = "text-rose-600 font-bold";
+            } else if (pyramid.junk > 1.5) {
+                junkBar.className = "bg-amber-500 h-full rounded-full transition-all duration-500";
+                junkLabel.textContent = "適中";
+                junkLabel.className = "text-amber-600 font-bold";
+            } else {
+                junkBar.className = "bg-emerald-500 h-full rounded-full transition-all duration-500";
+                junkLabel.textContent = "良好 (少吃)";
+                junkLabel.className = "text-emerald-600 font-bold";
+            }
+        }
+
+        function initCharts() {
+            const ctx1 = document.getElementById('macroChart').getContext('2d');
+            macroChartInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['碳水化合物', '蛋白質', '脂肪'],
+                    datasets: [{
+                        data: [55, 15, 30],
+                        backgroundColor: ['#2563eb', '#f43f5e', '#10b981']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+
+            const ctx2 = document.getElementById('mealChart').getContext('2d');
+            mealChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['早餐', '午餐', '晚餐', '宵夜/小食'],
+                    datasets: [{
+                        data: [25, 35, 35, 5],
+                        backgroundColor: ['#f59e0b', '#0d9488', '#6366f1', '#a855f7']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+
+        function updateCharts(macroData, mealData) {
+            if (macroChartInstance && mealChartInstance) {
+                const macroSum = macroData.reduce((a, b) => a + b, 0);
+                macroChartInstance.data.datasets[0].data = macroSum > 0 ? macroData : [55, 15, 30];
+                macroChartInstance.update();
+
+                const mealSum = mealData.reduce((a, b) => a + b, 0);
+                mealChartInstance.data.datasets[0].data = mealSum > 0 ? mealData : [25, 35, 35, 5];
+                mealChartInstance.update();
+            }
+        }
+
+        function generateAdvice(totalCal, targetCal, carbPct, proPct, fatPct, pyramid, sodium, fiber, calcium) {
+            const name = document.getElementById('studentName').value.trim() || '同學';
+            const evalBox = document.getElementById('student-evaluation-text');
+            const tipsList = document.getElementById('tips-list');
+
+            if (totalCal === 0) {
+                evalBox.innerHTML = `<p class="font-semibold text-emerald-800">${name}，你今日嘅飲食分析出來啦！</p><p>請填寫上方四餐，系統會自動評估你的營養均衡度！</p>`;
+                return;
+            }
+
+            let comments = [];
+            let tips = [];
+
+            // Calorie check
+            const calDiff = totalCal - targetCal;
+            if (Math.abs(calDiff) <= 250) {
+                comments.push(`🎯 <b>熱量攝取非常適中！</b> 你今日總共攝取咗 <b>${Math.round(totalCal)} kcal</b>，同建議目標 (${targetCal} kcal) 好接近，有助維持健康體重同體力！`);
+            } else if (calDiff > 250) {
+                comments.push(`⚠️ <b>熱量攝取略為過高：</b> 你今日攝取咗 <b>${Math.round(totalCal)} kcal</b> (超出目標約 ${Math.round(calDiff)} kcal)。長期過剩容易積聚脂肪！`);
+            } else {
+                comments.push(`💡 <b>熱量攝取偏低：</b> 你今日只攝取咗 <b>${Math.round(totalCal)} kcal</b> (低於目標 ${Math.abs(Math.round(calDiff))} kcal)。中學生正值發育時期，熱量唔夠會影響集中力！`);
+            }
+
+            // Macros
+            if (fatPct > 35) {
+                comments.push(`🍟 <b>脂肪比例偏高 (${fatPct}%)：</b> 飲食中包含較多煎炸物、餐肉、燒味油份或高脂醬汁。`);
+                tips.push('午餐去學校小食部或茶餐廳時，盡量選擇蒸、灼、烤嘅食物（例如「菜心炒肉片」或「蒸魚飯」），減少吃煎炸小食。');
+            }
+
+            // Veg and Fruits
+            if (pyramid.veg < 2 || fiber < 15) {
+                comments.push(`🥦 <b>膳食纖維同蔬菜不足：</b> 你今日只食咗約 ${Math.round(pyramid.veg * 10)/10} 份蔬菜。腸道健康需要纖維！`);
+                tips.push('晚餐記得要要求「多菜」，或者 lunch 點餐時叫多一碟灼菜 (少油/少蠔油)。');
+            } else {
+                comments.push(`✅ <b>蔬菜攝取表現不錯！</b> 繼續保持每日吃足 2-3 份蔬菜的好習慣。`);
+            }
+
+            if (pyramid.fruit < 1) {
+                comments.push(`🍎 <b>水果攝取不足：</b> 今日好像未食水果呢！`);
+                tips.push('每日帶一個蘋果、橙或香蕉返學校作為小食，代替薯片和餅乾。');
+            }
+
+            // Sodium & Calcium
+            if (sodium > 2000) {
+                comments.push(`🧂 <b>鈉質 (鹽份) 偏高 (${Math.round(sodium)} mg)：</b> 超過每日 2000mg 建議上限！加工食品 (餐肉、腸仔) 同粉麵湯底係鈉質元凶！`);
+                tips.push('食湯粉麵（例如車仔麵、公仔麵）時，盡量唔好飲湯底，或者要求「走汁/少汁」。');
+            }
+
+            if (calcium < 800) {
+                tips.push('發育期骨骼生長需要鈣質！建議每日飲 1-2 杯高鈣低脂奶，或選擇豆腐與深綠色蔬菜。');
+            }
+
+            evalBox.innerHTML = `
+                <p class="font-bold text-emerald-900 mb-1">${name}，你今日嘅膳食營養分析結果如下：</p>
+                <div class="space-y-1.5 pl-1">
+                    ${comments.map(c => `<p class="border-l-2 border-emerald-400 pl-2 py-0.5">${c}</p>`).join('')}
+                </div>
+            `;
+
+            if (tips.length > 0) {
+                tipsList.innerHTML = tips.map(t => `<li class="font-medium text-slate-700">${t}</li>`).join('');
+            } else {
+                tipsList.innerHTML = `<li>讚！你今日嘅飲食好均衡，繼續保持這個健康生活習慣！</li>`;
+            }
+        }
+    </script>
+</body>
+</html>
